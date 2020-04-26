@@ -204,6 +204,8 @@ static char* ngx_str_array_to_str(char* buffer, size_t len, ngx_array_t const* a
             if (more) {
                 break;
             }
+
+            ++values;
         }
         if (more) {
             memcpy(e - 3, "...]", 5);
