@@ -326,6 +326,10 @@ static ngx_int_t ngx_ipset_access_install_handlers(ngx_conf_t *cf) {
     checked_array_push(cmcf->phases[NGX_HTTP_ACCESS_PHASE].handlers, ngx_ipset_access_http_access_handler);
     return NGX_OK;
 }
+static ngx_int_t ngx_ipset_access_on_init_process(ngx_cycle_t *cycle) {
+    ngx_log_error(NGX_LOG_ERR, cycle->log, 0, "module init_process called");
+    return NGX_OK;
+}
 
 static ngx_http_module_t ngx_http_ipset_access_module_context = {
     NULL,                                   /* preconfiguration */
@@ -340,6 +344,7 @@ static ngx_http_module_t ngx_http_ipset_access_module_context = {
     NULL,                                   /* create location configuration */
     NULL                                    /* merge location configuration */
 };
+
 ngx_module_t ngx_http_ipset_access = {
     NGX_MODULE_V1,
     &ngx_http_ipset_access_module_context,  /* module context */
@@ -347,7 +352,7 @@ ngx_module_t ngx_http_ipset_access = {
     NGX_HTTP_MODULE,                        /* module type */
     NULL,                                   /* init master */
     NULL,                                   /* init module */
-    NULL,                                   /* init process */
+    ngx_ipset_access_on_init_process,       /* init process */
     NULL,                                   /* init thread */
     NULL,                                   /* exit thread */
     NULL,                                   /* exit process */
