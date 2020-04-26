@@ -179,15 +179,51 @@ static int ngx_str_array_copy(ngx_pool_t* pool, ngx_array_t* dst, ngx_uint_t di,
     }
     return 0;
 }
+static char* ngx_str_array_to_str(char* buffer, size_t len, ngx_array_t const* array) {
+    char* b = buffer;
+    char* e = buffer + len - 2;
+    *b++ = '[';
+    if (!array->nelts) {
+        *b++ = ']';
+        *b++ = 0;
+    } else {
+        ngx_uint_t i;
+        bool more = false;
+        ngx_str_t* values = array->elts;
+        for (i = 0; i < array->nelts; i++) {
+            if (i) {
+                *b++ = ',';
+            }
+            if ((e - b) < values->len) {
+                more = true;
+                break;
+            }
+            memcpy(b, values->data, values->len);
+            b += values->len;
+        }
+        if (more) {
+            memcpy(e - 3, "...]", 5);
+        } else {
+            *b++ = ']';
+            *b++ = 0;
+        }
+    }
+    return buffer;
+}
 
 static void* ngx_ipset_access_server_conf_create(ngx_conf_t *cf) {
     ngx_ipset_access_server_conf_t* conf = ngx_pcalloc(cf->pool, sizeof(ngx_ipset_access_server_conf_t));
+    ngx_log_error(NGX_LOG_DEBUG, cf->log, 0, "Creating server configuration");
     return conf;
 }
 static char* ngx_ipset_access_server_conf_merge(ngx_conf_t* cf, void* parent,  void* child) {
     ngx_ipset_access_server_conf_t* prev = parent;
     ngx_ipset_access_server_conf_t* conf = child;
 
+    char parent_data[129], child_data[129];
+    ngx_log_debug4(NGX_LOG_DEBUG, cf->log, 0, "Merging server configuration(parent: { mode: %d, sets: %s }, child: { mode: %d, sets: %s })",
+        prev->mode, ngx_str_array_to_str(parent_data, sizeof(parent_data), &prev->sets),
+        conf->mode, ngx_str_array_to_str(parent_data, sizeof(parent_data), &conf->sets));
     if (conf->mode == e_mode_not_configured) {
         // configuration is not configured here, so lets copy it from the parent
         conf->mode = prev->mode;
@@ -198,6 +234,8 @@ static char* ngx_ipset_access_server_conf_merge(ngx_conf_t* cf, void* parent,  v
         }
     }
 
+    ngx_log_debug2(NGX_LOG_DEBUG, cf->log, 0, "Merging server configuration(return: { mode: %d, sets: %s })",
+        conf->mode, ngx_str_array_to_str(parent_data, sizeof(parent_data), &conf->sets));
     return NGX_OK;
 }
 static char* ngx_ipset_access_server_conf_parse(ngx_conf_t* cf, ngx_command_t* command, void* pv_conf) {
@@ -207,6 +245,9 @@ static char* ngx_ipset_access_server_conf_parse(ngx_conf_t* cf, ngx_command_t* c
     ngx_str_t* args = cf->args->elts;
     ngx_ipset_access_server_conf_t* conf = pv_conf;
 
+    char buffer[129];
+    ngx_log_debug1(NGX_LOG_DEBUG, cf->log, 0, "Parsing config(args: {%s})", ngx_str_array_to_str(buffer, 129, cf->args));
+
     // first arg is name of the command, and rest of them are values for that command
     if (args[1].len == 3 && memcmp(args[1].data, "off", 3) == 0) {
         conf->mode = e_mode_off;
@@ -215,20 +256,26 @@ static char* ngx_ipset_access_server_conf_parse(ngx_conf_t* cf, ngx_command_t* c
 
     if (ngx_array_init(&conf->sets, cf->pool, cf->args->nelts - 1, sizeof(ngx_str_t))) {
         // error in allocating buffer
+        ngx_log_error(NGX_LOG_ERR, cf->log, ENOMEM, "Failed to allocate array");
         return (char*)NGX_ERROR;
     }
 
     if (ngx_str_array_copy(cf->pool, &conf->sets, 0, cf->args, 1)) {
+        ngx_log_error(NGX_LOG_ERR, cf->log, ENOMEM, "Failed to copy arg values");
         return (char*)NGX_ERROR;
     }
 
     conf->mode = args[0].data[0] == 'b' ? e_mode_blacklist : e_mode_whitelist;
+    ngx_log_debug1(NGX_LOG_DEBUG, cf->log, 0, "Working in %s mode", conf->mode == e_mode_blacklist ? "blacklist" : "whitelist");
+    ngx_log_debug2(NGX_LOG_DEBUG, cf->log, 0, "Parsing result(mode: %d, sets: %s)",
+        conf->mode, ngx_str_array_to_str(buffer, 129, conf->args));
 
     // test input sets
     values = conf->sets.elts;
     session = ngx_get_session();
     if (!session) {
         // failed to create session
+        ngx_log_error(NGX_LOG_ERR, cf->log, EINVAL, "Failed to load IPSET session");
         return (char*)NGX_ERROR;
     }
 
@@ -236,6 +283,7 @@ static char* ngx_ipset_access_server_conf_parse(ngx_conf_t* cf, ngx_command_t* c
         ngx_ipset_test_result_t result = ngx_test_ip_is_in_set(session, (const char*)values->data, "127.0.0.1");
         if (result == IPS_TEST_FAIL || result == IPS_TEST_INVALID_SETNAME) {
             // error in testing IP in set
+            ngx_log_error1(NGX_LOG_ERR, cf->log, EINVAL, "error in testing IP in set(%s)", values->data);
             return (char*)NGX_ERROR;
         }
     }
@@ -308,6 +356,10 @@ ngx_module_t ngx_http_ipset_access = {
 static ngx_int_t ngx_ipset_access_http_access_handler(ngx_http_request_t* request) {
     ngx_ipset_access_server_conf_t  *conf = ngx_http_get_module_srv_conf(request, ngx_http_ipset_access);
 
+    char parent_data[129];
+    ngx_log_debug2(NGX_LOG_DEBUG, cf->log, 0, "Access handler(mode: %d, sets: %s)",
+        conf->mode,
+        ngx_str_array_to_str(parent_data, sizeof(parent_data), &conf->sets));
     if ((conf->mode == e_mode_whitelist || conf->mode == e_mode_blacklist) &&
         request->connection->sockaddr->sa_family == AF_INET) {
         char* ip;
