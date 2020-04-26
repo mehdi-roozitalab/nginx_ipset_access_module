@@ -376,7 +376,7 @@ static ngx_int_t ngx_ipset_access_http_access_handler(ngx_http_request_t* reques
         request->connection->sockaddr->sa_family == AF_INET) {
         char* ip;
         ngx_ipset_session_t* session;
-        ngx_ipset_test_result_t result;
+        ngx_ipset_test_result_t result = 0;
 
         ip = inet_ntoa(((struct sockaddr_in*) request->connection->sockaddr)->sin_addr);
         session = ngx_get_session();
