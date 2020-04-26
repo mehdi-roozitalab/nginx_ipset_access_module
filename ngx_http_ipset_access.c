@@ -238,7 +238,7 @@ static char* ngx_ipset_access_server_conf_merge(ngx_conf_t* cf, void* parent,  v
     ngx_ipset_access_server_conf_t* conf = child;
 
     char parent_data[129], child_data[129];
-    ngx_log_debug_core(NGX_LOG_INFO, cf->log, 0,
+    ngx_log_debug4(NGX_LOG_INFO, cf->log, 0,
         "Merging server configuration(parent: { mode: %d, sets: %s }, child: { mode: %d, sets: %s })",
         prev->mode, ngx_str_array_to_str(parent_data, sizeof(parent_data), &prev->sets),
         conf->mode, ngx_str_array_to_str(child_data, sizeof(child_data), &conf->sets));
@@ -252,7 +252,7 @@ static char* ngx_ipset_access_server_conf_merge(ngx_conf_t* cf, void* parent,  v
         }
     }
 
-    ngx_log_debug_core(NGX_LOG_INFO, cf->log, 0,
+    ngx_log_debug2(NGX_LOG_INFO, cf->log, 0,
         "Merging server configuration(return: { mode: %d, sets: %s })",
         conf->mode, ngx_str_array_to_str(parent_data, sizeof(parent_data), &conf->sets));
     return NGX_OK;
@@ -265,24 +265,24 @@ static char* ngx_ipset_access_server_conf_parse(ngx_conf_t* cf, ngx_command_t* c
     ngx_ipset_access_server_conf_t* conf = pv_conf;
 
     char buffer[129];
-    ngx_log_debug_core(NGX_LOG_INFO, cf->log, 0, "Parsing config(args: %s)",
+    ngx_log_debug1(NGX_LOG_INFO, cf->log, 0, "Parsing config(args: %s)",
         ngx_str_array_to_str(buffer, 129, cf->args));
 
     // first arg is name of the command, and rest of them are values for that command
     if (args[1].len == 3 && memcmp(args[1].data, "off", 3) == 0) {
-        ngx_log_debug_core(NGX_LOG_INFO, cf->log, 0, "Parse result(mode: %d, sets: %s)",
+        ngx_log_debug2(NGX_LOG_INFO, cf->log, 0, "Parse result(mode: %d, sets: %s)",
             conf->mode, ngx_str_array_to_str(buffer, 129, &conf->sets));
         conf->mode = e_mode_off;
         return NGX_OK;
     }
 
     if (ngx_str_array_copy(cf->pool, &conf->sets, cf->args, 1)) {
-        ngx_log_debug_core(NGX_LOG_INFO, cf->log, ENOMEM, "Failed to copy arg values");
+        ngx_log_debug0(NGX_LOG_INFO, cf->log, ENOMEM, "Failed to copy arg values");
         return (char*)NGX_ERROR;
     }
 
     conf->mode = args[0].data[0] == 'b' ? e_mode_blacklist : e_mode_whitelist;
-    ngx_log_debug_core(NGX_LOG_INFO, cf->log, 0, "Parse result(mode: %d, sets: %s)",
+    ngx_log_debug2(NGX_LOG_INFO, cf->log, 0, "Parse result(mode: %d, sets: %s)",
         conf->mode, ngx_str_array_to_str(buffer, 129, &conf->sets));
 
     // test input sets
@@ -290,7 +290,7 @@ static char* ngx_ipset_access_server_conf_parse(ngx_conf_t* cf, ngx_command_t* c
     session = ngx_get_session();
     if (!session) {
         // failed to create session
-        ngx_log_debug_core(NGX_LOG_INFO, cf->log, EINVAL, "Failed to load IPSET session");
+        ngx_log_debug0(NGX_LOG_INFO, cf->log, EINVAL, "Failed to load IPSET session");
         return (char*)NGX_ERROR;
     }
 
@@ -298,10 +298,10 @@ static char* ngx_ipset_access_server_conf_parse(ngx_conf_t* cf, ngx_command_t* c
         ngx_ipset_test_result_t result = ngx_test_ip_is_in_set(session, (const char*)value->data, "127.0.0.1");
         if (result == IPS_TEST_FAIL || result == IPS_TEST_INVALID_SETNAME) {
             // error in testing IP in set
-            ngx_log_debug_core(NGX_LOG_INFO, cf->log, EINVAL, "error in testing IP in set(%s)", value->data);
+            ngx_log_debug1(NGX_LOG_INFO, cf->log, EINVAL, "error in testing IP in set(%s)", value->data);
             return (char*)NGX_ERROR;
         } else {
-            ngx_log_debug_core(NGX_LOG_INFO, cf->log, 0, "ngx_test_ip_is_in_set(%p, %s, %s) -> %d",
+            ngx_log_debug4(NGX_LOG_INFO, cf->log, 0, "ngx_test_ip_is_in_set(%p, %s, %s) -> %d",
                 session, (const char*)value->data, "127.0.0.1", result);
         }
     }
@@ -336,13 +336,13 @@ static ngx_int_t ngx_ipset_access_install_handlers(ngx_conf_t *cf) {
     ngx_http_handler_pt*       h;
     ngx_http_core_main_conf_t* cmcf;
 
-    ngx_log_debug_core(NGX_LOG_NOTICE, cf->log, 0, "Installing filter handler");
+    ngx_log_debug0(NGX_LOG_NOTICE, cf->log, 0, "Installing filter handler");
     cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
     checked_array_push(cmcf->phases[NGX_HTTP_PREACCESS_PHASE].handlers, ngx_ipset_access_http_access_handler);
     return NGX_OK;
 }
 static ngx_int_t ngx_ipset_access_on_init_process(ngx_cycle_t *cycle) {
-    ngx_log_debug_core(NGX_LOG_NOTICE, cycle->log, 0, "module init_process called");
+    ngx_log_debug0(NGX_LOG_NOTICE, cycle->log, 0, "module init_process called");
     return NGX_OK;
 }
 
@@ -381,7 +381,7 @@ static ngx_int_t ngx_ipset_access_http_access_handler(ngx_http_request_t* reques
     ngx_ipset_access_server_conf_t  *conf = ngx_http_get_module_srv_conf(request, ngx_http_ipset_access);
 
     char parent_data[129];
-    ngx_log_debug_core(NGX_LOG_NOTICE, request->connection->log, 0,
+    ngx_log_debug5(NGX_LOG_NOTICE, request->connection->log, 0,
         "Access handler(mode: %d, sets: %s): {connection: %p, sockaddr: %p, family: %d}",
         conf->mode, ngx_str_array_to_str(parent_data, sizeof(parent_data), &conf->sets),
         request->connection, request->connection? request->connection->sockaddr : NULL,
@@ -393,7 +393,7 @@ static ngx_int_t ngx_ipset_access_http_access_handler(ngx_http_request_t* reques
         ngx_ipset_test_result_t result = 0;
 
         ip = inet_ntoa(((struct sockaddr_in*) request->connection->sockaddr)->sin_addr);
-        ngx_log_debug_core(NGX_LOG_INFO, request->connection->log, 0, "testing '%s' in IPSET for permission", ip);
+        ngx_log_debug1(NGX_LOG_INFO, request->connection->log, 0, "testing '%s' in IPSET for permission", ip);
         session = ngx_get_session();
         if (!session) {
             ngx_log_error(NGX_LOG_WARN, request->connection->log, 0, "failed to load an IPSET session");
@@ -404,7 +404,7 @@ static ngx_int_t ngx_ipset_access_http_access_handler(ngx_http_request_t* reques
             for (i = 0; i < conf->sets.nelts; i++, set++) {
                 result = ngx_test_ip_is_in_set(session, (char*)set->data, ip);
                 if (result != IPS_TEST_IS_NOT_IN_SET) {
-                    ngx_log_debug_core(NGX_LOG_DEBUG, request->connection->log, 0, "test %s %s -> %d", set->data, ip, result);
+                    ngx_log_debug3(NGX_LOG_DEBUG, request->connection->log, 0, "test %s %s -> %d", set->data, ip, result);
                     if (result == IPS_TEST_FAIL) {
                         ngx_log_error(NGX_LOG_WARN, request->connection->log, 0, "Failed to test presence of IP in IPSET.");
                     }
@@ -417,7 +417,7 @@ static ngx_int_t ngx_ipset_access_http_access_handler(ngx_http_request_t* reques
             (conf->mode == e_mode_blacklist && (result == IPS_TEST_IS_IN_SET))) {
             
             request->keepalive = 0;
-            ngx_log_debug_core(NGX_LOG_NOTICE, request->connection->log, 0, "Blocking %s with 444", ip);
+            ngx_log_debug1(NGX_LOG_NOTICE, request->connection->log, 0, "Blocking %s with 444", ip);
 
             //return a non-standard status when blacklisting
             if(conf->mode == e_mode_blacklist) {
