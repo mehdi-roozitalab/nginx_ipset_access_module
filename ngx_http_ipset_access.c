@@ -189,9 +189,9 @@ static char* ngx_str_array_to_str(char* buffer, size_t len, ngx_array_t const* a
     } else {
         ngx_uint_t i;
         bool more = false;
-        ngx_str_t* values = array->elts;
+        ngx_str_t* value = array->elts;
         for (i = 0; i < array->nelts; i++) {
-            size_t cp = values->len;
+            size_t cp = value->len;
             if (i) {
                 *b++ = ',';
             }
@@ -199,13 +199,13 @@ static char* ngx_str_array_to_str(char* buffer, size_t len, ngx_array_t const* a
                 cp = e - b;
                 more = true;
             }
-            memcpy(b, values->data, cp);
-            b += values->len;
+            memcpy(b, value->data, cp);
+            b += value->len;
             if (more) {
                 break;
             }
 
-            ++values;
+            ++value;
         }
         if (more) {
             memcpy(e - 3, "...]", 5);
@@ -246,7 +246,7 @@ static char* ngx_ipset_access_server_conf_merge(ngx_conf_t* cf, void* parent,  v
 }
 static char* ngx_ipset_access_server_conf_parse(ngx_conf_t* cf, ngx_command_t* command, void* pv_conf) {
     ngx_uint_t i;
-    ngx_str_t* values;
+    ngx_str_t* value;
     ngx_ipset_session_t* session;
     ngx_str_t* args = cf->args->elts;
     ngx_ipset_access_server_conf_t* conf = pv_conf;
@@ -278,7 +278,7 @@ static char* ngx_ipset_access_server_conf_parse(ngx_conf_t* cf, ngx_command_t* c
         conf->mode, ngx_str_array_to_str(buffer, 129, &conf->sets));
 
     // test input sets
-    values = conf->sets.elts;
+    value = conf->sets.elts;
     session = ngx_get_session();
     if (!session) {
         // failed to create session
@@ -286,11 +286,11 @@ static char* ngx_ipset_access_server_conf_parse(ngx_conf_t* cf, ngx_command_t* c
         return (char*)NGX_ERROR;
     }
 
-    for (i = 0; i < conf->sets.nelts; i++, values++) {
-        ngx_ipset_test_result_t result = ngx_test_ip_is_in_set(session, (const char*)values->data, "127.0.0.1");
+    for (i = 0; i < conf->sets.nelts; i++, value++) {
+        ngx_ipset_test_result_t result = ngx_test_ip_is_in_set(session, (const char*)value->data, "127.0.0.1");
         if (result == IPS_TEST_FAIL || result == IPS_TEST_INVALID_SETNAME) {
             // error in testing IP in set
-            ngx_log_error(NGX_LOG_ERR, cf->log, EINVAL, "error in testing IP in set(%s)", values->data);
+            ngx_log_error(NGX_LOG_ERR, cf->log, EINVAL, "error in testing IP in set(%s)", value->data);
             return (char*)NGX_ERROR;
         }
     }
