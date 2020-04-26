@@ -337,6 +337,7 @@ static ngx_int_t ngx_ipset_access_install_handlers(ngx_conf_t *cf) {
     ngx_http_handler_pt*       h;
     ngx_http_core_main_conf_t* cmcf;
 
+    ngx_log_error(NGX_LOG_EMERG, cf->log, 0, "Installing filter handler");
     cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
     checked_array_push(cmcf->phases[NGX_HTTP_ACCESS_PHASE].handlers, ngx_ipset_access_http_access_handler);
     return NGX_OK;
@@ -381,9 +382,9 @@ static ngx_int_t ngx_ipset_access_http_access_handler(ngx_http_request_t* reques
     ngx_ipset_access_server_conf_t  *conf = ngx_http_get_module_srv_conf(request, ngx_http_ipset_access);
 
     char parent_data[129];
-    ngx_log_error(NGX_LOG_WARN, request->connection->log, 0, "Access handler(mode: %d, sets: %s)",
-        conf->mode,
-        ngx_str_array_to_str(parent_data, sizeof(parent_data), &conf->sets));
+    ngx_log_error(NGX_LOG_EMERG, request->connection->log, 0,
+        "Access handler(mode: %d, sets: %s)",
+        conf->mode, ngx_str_array_to_str(parent_data, sizeof(parent_data), &conf->sets));
     if ((conf->mode == e_mode_whitelist || conf->mode == e_mode_blacklist) &&
         request->connection->sockaddr->sa_family == AF_INET) {
         char* ip;
