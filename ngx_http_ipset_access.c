@@ -256,6 +256,8 @@ static char* ngx_ipset_access_server_conf_parse(ngx_conf_t* cf, ngx_command_t* c
 
     // first arg is name of the command, and rest of them are values for that command
     if (args[1].len == 3 && memcmp(args[1].data, "off", 3) == 0) {
+        ngx_log_error(NGX_LOG_WARN, cf->log, 0, "Parse result(mode: %d, sets: %s)",
+            conf->mode, ngx_str_array_to_str(buffer, 129, &conf->sets));
         conf->mode = e_mode_off;
         return NGX_OK;
     }
