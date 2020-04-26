@@ -239,7 +239,8 @@ static char* ngx_ipset_access_server_conf_merge(ngx_conf_t* cf, void* parent,  v
     ngx_ipset_access_server_conf_t* conf = child;
 
     char parent_data[129], child_data[129];
-    ngx_log_error(NGX_LOG_WARN, cf->log, 0, "Merging server configuration(parent: { mode: %d, sets: %s }, child: { mode: %d, sets: %s })",
+    ngx_log_error(NGX_LOG_WARN, cf->log, 0,
+        "Merging server configuration(parent: { mode: %d, sets: %s }, child: { mode: %d, sets: %s })",
         prev->mode, ngx_str_array_to_str(parent_data, sizeof(parent_data), &prev->sets),
         conf->mode, ngx_str_array_to_str(child_data, sizeof(child_data), &conf->sets));
     if (conf->mode == e_mode_not_configured) {
@@ -252,7 +253,8 @@ static char* ngx_ipset_access_server_conf_merge(ngx_conf_t* cf, void* parent,  v
         }
     }
 
-    ngx_log_error(NGX_LOG_WARN, cf->log, 0, "Merging server configuration(return: { mode: %d, sets: %s })",
+    ngx_log_error(NGX_LOG_WARN, cf->log, 0,
+        "Merging server configuration(return: { mode: %d, sets: %s })",
         conf->mode, ngx_str_array_to_str(parent_data, sizeof(parent_data), &conf->sets));
     return NGX_OK;
 }
@@ -264,7 +266,8 @@ static char* ngx_ipset_access_server_conf_parse(ngx_conf_t* cf, ngx_command_t* c
     ngx_ipset_access_server_conf_t* conf = pv_conf;
 
     char buffer[129];
-    ngx_log_error(NGX_LOG_WARN, cf->log, 0, "Parsing config(args: {%s})", ngx_str_array_to_str(buffer, 129, cf->args));
+    ngx_log_error(NGX_LOG_WARN, cf->log, 0, "Parsing config(args: %s)",
+        ngx_str_array_to_str(buffer, 129, cf->args));
 
     // first arg is name of the command, and rest of them are values for that command
     if (args[1].len == 3 && memcmp(args[1].data, "off", 3) == 0) {
