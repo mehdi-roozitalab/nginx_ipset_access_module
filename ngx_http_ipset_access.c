@@ -219,7 +219,15 @@ static char* ngx_str_array_to_str(char* buffer, size_t len, ngx_array_t const* a
 
 static void* ngx_ipset_access_server_conf_create(ngx_conf_t *cf) {
     ngx_ipset_access_server_conf_t* conf = ngx_pcalloc(cf->pool, sizeof(ngx_ipset_access_server_conf_t));
-    ngx_log_error(NGX_LOG_DEBUG, cf->log, 0, "Creating server configuration");
+    if (conf) {
+        if (ngx_array_init(&conf->sets, cf->pool, 0, sizeof(ngx_str_t))) {
+            // error in allocating buffer
+            ngx_log_error(NGX_LOG_ERR, cf->log, ENOMEM, "Failed to allocate array");
+            ngx_pfree(cf->pool, conf);
+            return NULL;
+        }
+    }
+    ngx_log_error(NGX_LOG_WARN, cf->log, 0, "Creating server configuration");
     return conf;
 }
 static char* ngx_ipset_access_server_conf_merge(ngx_conf_t* cf, void* parent,  void* child) {
@@ -260,12 +268,6 @@ static char* ngx_ipset_access_server_conf_parse(ngx_conf_t* cf, ngx_command_t* c
             conf->mode, ngx_str_array_to_str(buffer, 129, &conf->sets));
         conf->mode = e_mode_off;
         return NGX_OK;
-    }
-
-    if (ngx_array_init(&conf->sets, cf->pool, 0, sizeof(ngx_str_t))) {
-        // error in allocating buffer
-        ngx_log_error(NGX_LOG_ERR, cf->log, ENOMEM, "Failed to allocate array");
-        return (char*)NGX_ERROR;
     }
 
     if (ngx_str_array_copy(cf->pool, &conf->sets, cf->args, 1)) {
