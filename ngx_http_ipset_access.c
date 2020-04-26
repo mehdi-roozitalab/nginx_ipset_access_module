@@ -298,6 +298,9 @@ static char* ngx_ipset_access_server_conf_parse(ngx_conf_t* cf, ngx_command_t* c
             // error in testing IP in set
             ngx_log_error(NGX_LOG_ERR, cf->log, EINVAL, "error in testing IP in set(%s)", value->data);
             return (char*)NGX_ERROR;
+        } else {
+            ngx_log_error(NGX_LOG_ERR, cf->log, 0, "ngx_test_ip_is_in_set(%p, %s, %s) -> %d",
+                session, (const char*)value->data, "127.0.0.1", result);
         }
     }
 
