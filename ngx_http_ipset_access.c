@@ -237,11 +237,11 @@ static char* ngx_ipset_access_server_conf_merge(ngx_conf_t* cf, void* parent,  v
     ngx_ipset_access_server_conf_t* prev = parent;
     ngx_ipset_access_server_conf_t* conf = child;
 
-    char parent_data[129], child_data[129];
+    char temp[512];
     ngx_log_debug4(NGX_LOG_INFO, cf->log, 0,
         "Merging server configuration(parent: { mode: %d, sets: %s }, child: { mode: %d, sets: %s })",
-        prev->mode, ngx_str_array_to_str(parent_data, sizeof(parent_data), &prev->sets),
-        conf->mode, ngx_str_array_to_str(child_data, sizeof(child_data), &conf->sets));
+        prev->mode, ngx_str_array_to_str(temp, sizeof(temp) / 2, &prev->sets),
+        conf->mode, ngx_str_array_to_str(temp + sizeof(temp) / 2, sizeof(temp) / 2, &conf->sets));
     if (conf->mode == e_mode_not_configured) {
         // configuration is not configured here, so lets copy it from the parent
         conf->mode = prev->mode;
@@ -254,7 +254,7 @@ static char* ngx_ipset_access_server_conf_merge(ngx_conf_t* cf, void* parent,  v
 
     ngx_log_debug2(NGX_LOG_INFO, cf->log, 0,
         "Merging server configuration(return: { mode: %d, sets: %s })",
-        conf->mode, ngx_str_array_to_str(parent_data, sizeof(parent_data), &conf->sets));
+        conf->mode, ngx_str_array_to_str(temp, sizeof(temp), &conf->sets));
     return NGX_OK;
 }
 static char* ngx_ipset_access_server_conf_parse(ngx_conf_t* cf, ngx_command_t* command, void* pv_conf) {
@@ -380,10 +380,10 @@ ngx_module_t ngx_http_ipset_access = {
 static ngx_int_t ngx_ipset_access_http_access_handler(ngx_http_request_t* request) {
     ngx_ipset_access_server_conf_t  *conf = ngx_http_get_module_srv_conf(request, ngx_http_ipset_access);
 
-    char parent_data[129];
+    char temp[129];
     ngx_log_debug5(NGX_LOG_NOTICE, request->connection->log, 0,
         "Access handler(mode: %d, sets: %s): {connection: %p, sockaddr: %p, family: %d}",
-        conf->mode, ngx_str_array_to_str(parent_data, sizeof(parent_data), &conf->sets),
+        conf->mode, ngx_str_array_to_str(temp, sizeof(temp), &conf->sets),
         request->connection, request->connection? request->connection->sockaddr : NULL,
         (request->connection && request->connection->sockaddr) ? request->connection->sockaddr->sa_family : -1);
     if ((conf->mode == e_mode_whitelist || conf->mode == e_mode_blacklist) &&
