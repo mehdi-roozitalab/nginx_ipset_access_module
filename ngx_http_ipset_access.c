@@ -59,7 +59,7 @@ static ngx_ipset_test_result_t ngx_test_ip_is_in_set(
     char const* set,
     char const* ip) {
     int ret;
-    struct ipset_type* type;
+    const struct ipset_type* type;
 
     ret = ipset_parse_setname(session, IPSET_SETNAME, set);
     if (NGX_UNLIKELY(ret < 0)) {
@@ -160,28 +160,29 @@ static int ngx_str_copy(ngx_pool_t* pool, ngx_str_t* dst, ngx_str_t const* src) 
         return 0;
     }
 }
-
-static void* ngx_ipset_access_server_conf_create(ngx_conf_t *cf) {
-    ngx_ipset_access_server_conf_t* conf = ngx_pcalloc(cf->pool, sizeof(ngx_ipset_access_server_conf_t));
-    return conf;
-}
-static int ngx_ipset_access_server_conf_copy(
-    ngx_pool_t *pool,
-    ngx_ipset_access_server_conf_t* dst,
-    ngx_ipset_access_server_conf_t const* src) {
+static int ngx_str_array_copy(ngx_pool_t* pool, ngx_array_t* dst, ngx_uint_t di, ngx_array_t const* src, ngx_uint_t si) {
     ngx_uint_t i;
-    ngx_str_t* src_values = src->sets.elts;
-    ngx_str_t* dst_values = ngx_array_push_n(&dst->sets, src->sets.nelts);
-    if (!dst_values) {
-        return ENOMEM;
+    ngx_str_t* dst_values;
+    ngx_str_t const* src_values;
+    if ((dst->nelts - di) > (dst->size - si)) {
+        if (!ngx_array_push_n(dst, dst->nelts - dst->size)) {
+            return ENOMEM;
+        }
     }
-    for (i = 0; i < src->sets.nelts; i++, src_values++, dst_values++) {
-        int ret = ngx_str_copy(pool, dst_values, src_values);
+    src_values = src->elts + si;
+    dst_values = dst->elts + di;
+    for (i = si; i < src->nelts; i++) {
+        int ret = ngx_str_copy(pool, dst_values++, src_values++);
         if (ret) {
             return ret;
         }
     }
     return 0;
+}
+
+static void* ngx_ipset_access_server_conf_create(ngx_conf_t *cf) {
+    ngx_ipset_access_server_conf_t* conf = ngx_pcalloc(cf->pool, sizeof(ngx_ipset_access_server_conf_t));
+    return conf;
 }
 static char* ngx_ipset_access_server_conf_merge(ngx_conf_t* cf, void* parent,  void* child) {
     ngx_ipset_access_server_conf_t* prev = parent;
@@ -191,7 +192,7 @@ static char* ngx_ipset_access_server_conf_merge(ngx_conf_t* cf, void* parent,  v
         // configuration is not configured here, so lets copy it from the parent
         conf->mode = prev->mode;
         if (prev->sets.nelts) {
-            if (ngx_ipset_access_server_conf_copy(cf->pool, &conf->sets, &prev->sets)) {
+            if (ngx_str_array_copy(cf->pool, &conf->sets, 0, &prev->sets, 0)) {
                 return NGX_ERROR;
             }
         }
@@ -217,13 +218,8 @@ static char* ngx_ipset_access_server_conf_parse(ngx_conf_t* cf, ngx_command_t* c
         return NGX_ERROR;
     }
 
-    values = conf->sets.elts;
-    for (i = 1; i < cf->args->nelts; i++, values++) {
-        int ret = ngx_str_copy(cf->pool, values, args + i);
-        if (ret) {
-            return NGX_ERROR;
-        }
-        ++conf->sets.nelts;
+    if (ngx_str_array_copy(cf->pool, &conf->sets, 0, cf->args, 1)) {
+        return NGX_ERROR;
     }
 
     conf->mode = args[0].data[0] == 'b' ? e_mode_blacklist : e_mode_whitelist;
