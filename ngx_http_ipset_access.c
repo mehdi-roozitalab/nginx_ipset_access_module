@@ -265,13 +265,14 @@ static ngx_command_t ngx_http_ipset_access_commands[] = {
     ngx_null_command
 };
 
-#define checked_array_push(arr, elem) { h = ngx_array_push(&arr); if (h == NULL){ return (char*)NGX_ERROR;} *h = elem; }
+#define checked_array_push(arr, elem) { h = ngx_array_push(&arr); if (h == NULL){ return NGX_ERROR;} *h = elem; }
 static ngx_int_t ngx_ipset_access_install_handlers(ngx_conf_t *cf) {
     ngx_http_handler_pt*       h;
     ngx_http_core_main_conf_t* cmcf;
 
     cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
     checked_array_push(cmcf->phases[NGX_HTTP_ACCESS_PHASE].handlers, ngx_ipset_access_http_access_handler);
+    return NGX_OK;
 }
 
 static ngx_http_module_t ngx_http_ipset_access_module_context = {
@@ -290,7 +291,7 @@ static ngx_http_module_t ngx_http_ipset_access_module_context = {
 ngx_module_t ngx_http_ipset_access = {
     NGX_MODULE_V1,
     &ngx_http_ipset_access_module_context,  /* module context */
-    &ngx_http_ipset_access_commands,        /* module directives */
+    ngx_http_ipset_access_commands,         /* module directives */
     NGX_HTTP_MODULE,                        /* module type */
     NULL,                                   /* init master */
     NULL,                                   /* init module */
