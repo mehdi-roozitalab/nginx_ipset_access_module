@@ -1,0 +1,18 @@
+== ngx_http_ipset_access
+
+An nginx module for using netfilter ipsets as a black/white list.
+In comparison to standard nginx access module this allows for dynamic list updating, without nginx reload/restart.
+
+== Installation
+
+* Get youself a linux server with root access
+* Get nginx source code, unpack etc.
+* Install libssl-dev, pcre and other nginx requirements
+* Configure nginx with this module:
+    ./configure --add-module=/path/to/ngx_http_ipset_access --with-ld-opt=-lipset
+* Compile, install
+* Create yout ipset and add some 'offending' ips to it:
+    sudo ipset -N myblacklist iphash
+    sudo ipset -A myblacklist 127.0.0.1
+* Start nginx
+* Profit!
