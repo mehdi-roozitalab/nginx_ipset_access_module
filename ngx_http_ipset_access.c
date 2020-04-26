@@ -169,8 +169,8 @@ static int ngx_str_array_copy(ngx_pool_t* pool, ngx_array_t* dst, ngx_uint_t di,
             return ENOMEM;
         }
     }
-    src_values = src->elts + si;
-    dst_values = dst->elts + di;
+    src_values = ((ngx_str_t*)src->elts) + si;
+    dst_values = ((ngx_str_t*)dst->elts) + di;
     for (i = si; i < src->nelts; i++) {
         int ret = ngx_str_copy(pool, dst_values++, src_values++);
         if (ret) {
@@ -193,7 +193,7 @@ static char* ngx_ipset_access_server_conf_merge(ngx_conf_t* cf, void* parent,  v
         conf->mode = prev->mode;
         if (prev->sets.nelts) {
             if (ngx_str_array_copy(cf->pool, &conf->sets, 0, &prev->sets, 0)) {
-                return NGX_ERROR;
+                return (char*)NGX_ERROR;
             }
         }
     }
@@ -215,11 +215,11 @@ static char* ngx_ipset_access_server_conf_parse(ngx_conf_t* cf, ngx_command_t* c
 
     if (ngx_array_init(&conf->sets, cf->pool, cf->args->nelts - 1, sizeof(ngx_str_t))) {
         // error in allocating buffer
-        return NGX_ERROR;
+        return (char*)NGX_ERROR;
     }
 
     if (ngx_str_array_copy(cf->pool, &conf->sets, 0, cf->args, 1)) {
-        return NGX_ERROR;
+        return (char*)NGX_ERROR;
     }
 
     conf->mode = args[0].data[0] == 'b' ? e_mode_blacklist : e_mode_whitelist;
@@ -229,14 +229,14 @@ static char* ngx_ipset_access_server_conf_parse(ngx_conf_t* cf, ngx_command_t* c
     session = ngx_get_session();
     if (!session) {
         // failed to create session
-        return NGX_ERROR;
+        return (char*)NGX_ERROR;
     }
 
     for (i = 0; i < conf->sets.nelts; i++, values++) {
         ngx_ipset_test_result_t result = ngx_test_ip_is_in_set(session, (const char*)values->data, "127.0.0.1");
         if (result == IPS_TEST_FAIL || result == IPS_TEST_INVALID_SETNAME) {
             // error in testing IP in set
-            return NGX_ERROR;
+            return (char*)NGX_ERROR;
         }
     }
 
@@ -265,7 +265,7 @@ static ngx_command_t ngx_http_ipset_access_commands[] = {
     ngx_null_command
 };
 
-#define checked_array_push(arr, elem) { h = ngx_array_push(&arr); if (h == NULL){ return NGX_ERROR;} *h = elem; }
+#define checked_array_push(arr, elem) { h = ngx_array_push(&arr); if (h == NULL){ return (char*)NGX_ERROR;} *h = elem; }
 static ngx_int_t ngx_ipset_access_install_handlers(ngx_conf_t *cf) {
     ngx_http_handler_pt*       h;
     ngx_http_core_main_conf_t* cmcf;
