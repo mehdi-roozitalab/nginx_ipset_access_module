@@ -182,6 +182,10 @@ static int ngx_str_array_copy(ngx_pool_t* pool, ngx_array_t* dst, ngx_array_t co
 static char* ngx_str_array_to_str(char* buffer, size_t len, ngx_array_t const* array) {
     char* b = buffer;
     char* e = buffer + len - 2;
+    if (!array->pool) {
+        strcpy(buffer, "INVALID_ARRAY");
+        return buffer;
+    }
     *b++ = '[';
     if (!array->nelts) {
         *b++ = ']';
