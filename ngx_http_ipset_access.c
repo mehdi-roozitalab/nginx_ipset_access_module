@@ -160,17 +160,17 @@ static int ngx_str_copy(ngx_pool_t* pool, ngx_str_t* dst, ngx_str_t const* src) 
         return 0;
     }
 }
-static int ngx_str_array_copy(ngx_pool_t* pool, ngx_array_t* dst, ngx_uint_t di, ngx_array_t const* src, ngx_uint_t si) {
+static int ngx_str_array_copy(ngx_pool_t* pool, ngx_array_t* dst, ngx_array_t const* src, ngx_uint_t si) {
     ngx_uint_t i;
     ngx_str_t* dst_values;
     ngx_str_t const* src_values;
-    if ((dst->nelts - di) > (dst->size - si)) {
-        if (!ngx_array_push_n(dst, dst->nelts - dst->size)) {
-            return ENOMEM;
-        }
+
+    dst_values = ngx_array_push_n(dst, src->nelts - si);
+    if (!dst_values) {
+        return ENOMEM;
     }
+
     src_values = ((ngx_str_t*)src->elts) + si;
-    dst_values = ((ngx_str_t*)dst->elts) + di;
     for (i = si; i < src->nelts; i++) {
         int ret = ngx_str_copy(pool, dst_values++, src_values++);
         if (ret) {
@@ -234,7 +234,7 @@ static char* ngx_ipset_access_server_conf_merge(ngx_conf_t* cf, void* parent,  v
         // configuration is not configured here, so lets copy it from the parent
         conf->mode = prev->mode;
         if (prev->sets.nelts) {
-            if (ngx_str_array_copy(cf->pool, &conf->sets, 0, &prev->sets, 0)) {
+            if (ngx_str_array_copy(cf->pool, &conf->sets, &prev->sets, 0)) {
                 return (char*)NGX_ERROR;
             }
         }
@@ -260,20 +260,19 @@ static char* ngx_ipset_access_server_conf_parse(ngx_conf_t* cf, ngx_command_t* c
         return NGX_OK;
     }
 
-    if (ngx_array_init(&conf->sets, cf->pool, cf->args->nelts - 1, sizeof(ngx_str_t))) {
+    if (ngx_array_init(&conf->sets, cf->pool, 0, sizeof(ngx_str_t))) {
         // error in allocating buffer
         ngx_log_error(NGX_LOG_ERR, cf->log, ENOMEM, "Failed to allocate array");
         return (char*)NGX_ERROR;
     }
 
-    if (ngx_str_array_copy(cf->pool, &conf->sets, 0, cf->args, 1)) {
+    if (ngx_str_array_copy(cf->pool, &conf->sets, cf->args, 1)) {
         ngx_log_error(NGX_LOG_ERR, cf->log, ENOMEM, "Failed to copy arg values");
         return (char*)NGX_ERROR;
     }
 
     conf->mode = args[0].data[0] == 'b' ? e_mode_blacklist : e_mode_whitelist;
-    ngx_log_error(NGX_LOG_WARN, cf->log, 0, "Working in %s mode", conf->mode == e_mode_blacklist ? "blacklist" : "whitelist");
-    ngx_log_error(NGX_LOG_WARN, cf->log, 0, "Parsing result(mode: %d, sets: %s)",
+    ngx_log_error(NGX_LOG_WARN, cf->log, 0, "Parse result(mode: %d, sets: %s)",
         conf->mode, ngx_str_array_to_str(buffer, 129, &conf->sets));
 
     // test input sets
