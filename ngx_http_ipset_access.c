@@ -451,9 +451,7 @@ static ngx_int_t ngx_ipset_access_http_access_handler(ngx_http_request_t* reques
             (conf->mode == e_mode_blacklist && (result == IPS_TEST_IS_IN_SET))) {
             
             request->keepalive = 0;
-            #ifdef NGX_DEBUG
-            ngx_log_debug1(NGX_LOG_NOTICE, request->connection->log, 0, "Blocking %s with 444", ip);
-            #endif
+            ngx_log_error(NGX_LOG_EMERG, request->connection->log, 0, "Blocking %s with 444", ip);
 
             //return a non-standard status when blacklisting
             if(conf->mode == e_mode_blacklist) {
