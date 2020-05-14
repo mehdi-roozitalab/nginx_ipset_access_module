@@ -16,3 +16,13 @@ In comparison to standard nginx access module this allows for dynamic list updat
     sudo ipset -A myblacklist 127.0.0.1
 * Start nginx
 * Profit!
+
+== Installation as dynamic module
+
+Alternatively, you can compile a dynamic module for nginx with:
+    ./configure --add-dynamic-module=/path/to/ngx_http_ipset_access --with-compat
+
+After compilation, locate `objs/ngx_http_ipset_access.so`.
+
+To load the compiled module into nginx, add the following at the top of nginx.conf:
+    load_module /path/to/ngx_http_ipset_access.so;
