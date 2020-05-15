@@ -1,4 +1,31 @@
-ngx_addon_name=ngx_http_ipset_access
-HTTP_MODULES="$HTTP_MODULES ngx_http_ipset_access"
+ngx_feature="libipset library"
+ngx_feature_name=
+ngx_feature_run=no
+ngx_feature_incs="#include <libipset/linux_ip_set.h>"
+ngx_feature_libs=-lipset
+ngx_feature_test="IPSET_CMD_TEST"
+. auto/feature
 
-NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_ipset_access.c"
+ngx_addon_name=ngx_http_ipset_access
+
+if [ $ngx_found = yes ]; then
+
+    if test -n "$ngx_module_link"; then
+        ngx_module_type=HTTP
+        ngx_module_name=ngx_http_ipset_access
+        ngx_module_srcs="$ngx_addon_dir/ngx_http_ipset_access.c"
+        ngx_module_libs="$ngx_feature_libs"
+
+        . auto/module
+    else
+        HTTP_MODULES="$HTTP_MODULES ngx_http_ipset_access"
+        NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_ipset_access.c"
+        CORE_LIBS="$CORE_LIBS $ngx_feature_libs"
+    fi
+
+else
+	cat << END
+$0: error: the ngx_http_ipset_access module requires the ipset library.
+END
+	exit 1
+fi
