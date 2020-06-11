@@ -1,0 +1,7 @@
+http {
+  # first part is the mode (blacklist or whitelist) and rest of them are command arguments
+  # if command argument is "off" then module is disabled and otherwise it is a list of ipsets that should used in
+  # blacklisting or whitelisting.
+  blacklist ipset_name ;
+
+}
